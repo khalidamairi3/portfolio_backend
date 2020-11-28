@@ -3,6 +3,7 @@ import mariadb
 import dbcreds
 import json
 from flask_cors import CORS
+from datetime import date
 
 app = Flask(__name__)
 CORS(app)
@@ -60,7 +61,7 @@ def qoutes():
             if(conn != None):
                 conn.rollback()
                 conn.close()
-            if(result ):
+            if(result or result ==[]):
                 qoutes=[]
                 for row in result : 
                     qoute ={
@@ -72,7 +73,7 @@ def qoutes():
                 return Response(json.dumps(qoutes,default=str) ,mimetype="application/json",status=200)
             return Response(message ,mimetype="text/html",status=500)
 
-@app.route("/api/reviews",methods=["POST","get"])
+@app.route("/api/reviews",methods=["POST","GET"])
 def reviews():
     if request.method =="POST":
 
@@ -92,6 +93,7 @@ def reviews():
                 cursor.execute("INSERT INTO reviews (name,email,message,rate) VALUES (?,?,?,?) ",[name,email,message,rate])
                 conn.commit()
                 result = cursor.rowcount
+                reviewId=cursor.lastrowid
             except mariadb.OperationalError as e:
                 message = "connection error" 
             except Exception as e:
@@ -103,7 +105,15 @@ def reviews():
                     conn.rollback()
                     conn.close()
                 if(result == 1):
-                    return Response("Success" ,mimetype="text/html",status=200)
+                    review ={
+                    "id":reviewId,
+                    "name":name,
+                    "email": email,
+                    "message":message,
+                    "rate":rate,
+                    "date": date.today()
+                    }
+                    return Response(json.dumps(review,default=str) ,mimetype="text/html",status=200)
                 return Response(message ,mimetype="text/html",status=500)
         return Response("Something went wrong" ,mimetype="text/html",status=400)
     elif request.method == "GET" : 
